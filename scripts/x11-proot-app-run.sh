@@ -98,7 +98,7 @@ case "$COMMAND" in
             "$0" up
         fi
 
-        DISTRO="ubuntu" # Default or could be customizable via args/env
+        DISTRO="${PROOT_DISTRO:-ubuntu}" # Default or could be customizable via args/env
 
         # Check if proot-distro is installed and the distro is available
         if command -v proot-distro >/dev/null 2>&1; then
@@ -134,7 +134,7 @@ C_EOF
             clang -shared -fPIC "$LIBNETSTUB_C" -o "$LIBNETSTUB_SO"
         else
             echo "[*] Compiling libnetstub.so inside proot..."
-            proot-distro login "$DISTRO" --bind "$PREFIX/../usr/tmp:/tmp" -- bash -c "gcc -shared -fPIC /tmp/libnetstub.c -o /tmp/libnetstub.so || clang -shared -fPIC /tmp/libnetstub.c -o /tmp/libnetstub.so"
+            proot-distro login "$DISTRO" --shared-tmp --bind "$PREFIX/../usr/tmp:/tmp" -- bash -c "gcc -shared -fPIC /tmp/libnetstub.c -o /tmp/libnetstub.so || clang -shared -fPIC /tmp/libnetstub.c -o /tmp/libnetstub.so"
         fi
 
         PROOT_RUN_SCRIPT="$PREFIX/../usr/tmp/proot_run_app.sh"
@@ -155,10 +155,22 @@ chmod 700 "\$XDG_RUNTIME_DIR"
 if ! pgrep -x "dbus-daemon" > /dev/null; then
     dbus-daemon --session --fork --address="unix:path=\$XDG_RUNTIME_DIR/bus"
     export DBUS_SESSION_BUS_ADDRESS="unix:path=\$XDG_RUNTIME_DIR/bus"
+else
+    # Find existing dbus address if possible, though setting it statically here is better
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=\$XDG_RUNTIME_DIR/bus"
 fi
 
+# Try to start a window manager to provide EWMH, so electron/node apps map correctly.
 if command -v xfwm4 >/dev/null 2>&1; then
-    xfwm4 --replace >/dev/null 2>&1 &
+    if ! pgrep -x "xfwm4" > /dev/null; then
+        xfwm4 --replace >/dev/null 2>&1 &
+        disown
+    fi
+elif command -v openbox >/dev/null 2>&1; then
+    if ! pgrep -x "openbox" > /dev/null; then
+        openbox >/dev/null 2>&1 &
+        disown
+    fi
 fi
 
 export LD_PRELOAD="/tmp/libnetstub.so"
@@ -169,7 +181,7 @@ PROOT_EOF
         chmod +x "$PROOT_RUN_SCRIPT"
 
         echo "[*] Launching proot session..."
-        proot-distro login "$DISTRO"             --bind "$X11_SOCKET_DIR:/tmp/.X11-unix"             --bind "$PREFIX/../usr/tmp:/tmp"             -- bash /tmp/proot_run_app.sh
+        proot-distro login "$DISTRO" --shared-tmp --bind "$X11_SOCKET_DIR:/tmp/.X11-unix"             --bind "$PREFIX/../usr/tmp:/tmp"             -- bash /tmp/proot_run_app.sh
 
         ;;
     focus)
@@ -183,7 +195,7 @@ PROOT_EOF
 
         echo "[*] Searching for window '$WINDOW_NAME'..."
         # Just use wmctrl inside proot
-        DISTRO="ubuntu"
+        DISTRO="${PROOT_DISTRO:-ubuntu}"
         PROOT_FOCUS_SCRIPT="$PREFIX/../usr/tmp/proot_focus_app.sh"
 
         cat << PROOT_EOF > "$PROOT_FOCUS_SCRIPT"
@@ -197,7 +209,7 @@ fi
 PROOT_EOF
 
         chmod +x "$PROOT_FOCUS_SCRIPT"
-        proot-distro login "$DISTRO"             --bind "$X11_SOCKET_DIR:/tmp/.X11-unix"             --bind "$PREFIX/../usr/tmp:/tmp"             -- bash /tmp/proot_focus_app.sh
+        proot-distro login "$DISTRO" --shared-tmp --bind "$X11_SOCKET_DIR:/tmp/.X11-unix"             --bind "$PREFIX/../usr/tmp:/tmp"             -- bash /tmp/proot_focus_app.sh
 
         ;;
     down)

@@ -221,6 +221,16 @@ A generic wrapper script demonstrating these patterns is provided in `scripts/x1
 You can use it to manage Termux:X11 and run arbitrary applications.
 An example launcher for Antigravity is provided in `scripts/launch-antigravity-example.sh`.
 
+
+### Usage Example
+```bash
+# Start the Termux:X11 server and wait for the socket
+./scripts/x11-proot-app-run.sh up
+
+# Run xclock inside proot-distro
+./scripts/x11-proot-app-run.sh run xclock
+```
+
 ### Troubleshooting Ladder
 
 If you run into issues, follow this troubleshooting ladder:
@@ -229,3 +239,10 @@ If you run into issues, follow this troubleshooting ladder:
 3. **`xdpyinfo` works:** Verify display connection (run `xdpyinfo -display :1` inside proot).
 4. **`xclock` works:** Try running a simple X app like `xclock` to verify basic rendering.
 5. **App launch:** Finally, attempt to launch your target application.
+
+
+### Common Issues
+* **Stale X Server Recovery:** If Termux:X11 is stuck or  errors appear, run [*] Stopping helper-launched processes...
+[+] Down complete. and then  to cleanly kill background processes and wipe the socket directory.
+* **Focus Issues:** If an app launches but doesn't appear on screen, it might need to be focused. Run  (requires  inside the proot).
+* **WM Requirements:** Some applications (especially Electron apps) require a Window Manager to provide EWMH properties to map correctly. The wrapper attempts to start  inside proot automatically.
