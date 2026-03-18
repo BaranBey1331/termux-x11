@@ -204,3 +204,17 @@ Check how `shell-loader/src/main/java/com/termux/x11/Loader.java` works.
 
 # License
 Released under the [GPLv3 license](https://www.gnu.org/licenses/gpl-3.0.html).
+
+### Troubleshooting proot-distro and X11 Socket Issues
+
+If you plan to run Electron, Node.js, or complete Desktop Environments inside `proot-distro` using Termux:X11, you may encounter issues with stale X11 sockets, X server instances that are not properly cleaned up (`server already running`), or X clients that cannot connect to the display (`unable to open display :1`). Additionally, Node/Electron applications may throw errors such as `uv_interface_addresses ... error 13` due to network interface visibility within proot.
+
+To address these real-world conditions deterministically:
+
+1. Always wait for the X11 socket to exist before running proot.
+2. Explicitly bind the socket using `--bind "$TMPDIR/.X11-unix:/tmp/.X11-unix"`.
+3. Clear out stale lock files (`rm -rf $TMPDIR/.X11-unix`) before starting a new instance of termux-x11 if it crashed.
+4. Ensure a window manager (like `xfwm4 --replace`) is started to handle EWMH properties and correct window rendering logic.
+5. Create a stub (`libnetstub.so`) that overwrites `getifaddrs` to solve network-related crashes in Electron wrappers.
+
+A wrapper script demonstrating these patterns is provided in `tools/antigravity-x11-wrapper.sh`.
