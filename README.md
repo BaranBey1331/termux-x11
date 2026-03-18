@@ -217,4 +217,15 @@ To address these real-world conditions deterministically:
 4. Ensure a window manager (like `xfwm4 --replace`) is started to handle EWMH properties and correct window rendering logic.
 5. Create a stub (`libnetstub.so`) that overwrites `getifaddrs` to solve network-related crashes in Electron wrappers.
 
-A wrapper script demonstrating these patterns is provided in `tools/antigravity-x11-wrapper.sh`.
+A generic wrapper script demonstrating these patterns is provided in `scripts/x11-proot-app-run.sh`.
+You can use it to manage Termux:X11 and run arbitrary applications.
+An example launcher for Antigravity is provided in `scripts/launch-antigravity-example.sh`.
+
+### Troubleshooting Ladder
+
+If you run into issues, follow this troubleshooting ladder:
+1. **Host socket exists:** Check if the X11 socket was successfully created on the host (run `scripts/x11-proot-app-run.sh status`).
+2. **Proot socket exists:** Check if the socket is visible inside proot at `/tmp/.X11-unix/X1`.
+3. **`xdpyinfo` works:** Verify display connection (run `xdpyinfo -display :1` inside proot).
+4. **`xclock` works:** Try running a simple X app like `xclock` to verify basic rendering.
+5. **App launch:** Finally, attempt to launch your target application.
